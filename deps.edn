@@ -1,0 +1,11 @@
+{:paths ["src"]
+ ;; Zero third-party runtime deps — every namespace is portable .cljc (JVM, CLJS, SCI).
+ ;; Host injects IAction / IGuard ports for real work; default-ports make any chart
+ ;; runnable out of the box.
+ :deps {}
+ :aliases
+ {:test {:extra-paths ["test"]
+         :extra-deps {io.github.cognitect-labs/test-runner
+                      {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
+         :main-opts ["-m" "cognitect.test-runner"]
+         :exec-fn cognitect.test-runner.api/test}}}
