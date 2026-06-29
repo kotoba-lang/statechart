@@ -4,10 +4,11 @@
   caller decides how to surface them. `valid?` is true iff no :error-level problems
   (warnings are advisory)."
   (:require [clojure.set :as set]
+            [kotoba.dsl.problem :as problem]
             [statechart.model :as m]))
 
-(defn- problem [severity code id msg]
-  {:sc/severity severity :sc/code code :sc/id id :sc/msg msg})
+(defn- sc-problem [severity code id msg]
+  (problem/problem :sc severity code id msg))
 
 (defn- all-targets
   "Collect every :sc/target value from all transitions in the chart."
@@ -33,20 +34,20 @@
 
     ;; chart :sc/initial must reference an existing top-level state
     (when-not (contains? (set (keys (:sc/states chart {}))) (:sc/initial chart))
-      (conj! ps (problem :error :chart/bad-initial (:sc/id chart)
-                         (str "chart :sc/initial \"" (:sc/initial chart)
-                              "\" is not a top-level state"))))
+      (conj! ps (sc-problem :error :chart/bad-initial (:sc/id chart)
+                            (str "chart :sc/initial \"" (:sc/initial chart)
+                                 "\" is not a top-level state"))))
 
     ;; each compound state must have :sc/initial pointing to a direct child
     (doseq [[id s] all]
       (when (m/compound? s)
         (if-not (:sc/initial s)
-          (conj! ps (problem :error :compound/no-initial id
-                             (str "compound state \"" id "\" has no :sc/initial")))
+          (conj! ps (sc-problem :error :compound/no-initial id
+                                (str "compound state \"" id "\" has no :sc/initial")))
           (when-not (contains? (set (keys (:sc/states s {}))) (:sc/initial s))
-            (conj! ps (problem :error :compound/bad-initial id
-                               (str "compound \"" id "\" :sc/initial \""
-                                    (:sc/initial s) "\" not found in :sc/states")))))))
+            (conj! ps (sc-problem :error :compound/bad-initial id
+                                  (str "compound \"" id "\" :sc/initial \""
+                                       (:sc/initial s) "\" not found in :sc/states")))))))
 
     ;; all transition :sc/target values must reference existing states
     (doseq [[_ s]   all
@@ -54,26 +55,26 @@
             tx       txs]
       (when-let [tgt (:sc/target tx)]
         (when-not (contains? all-ids tgt)
-          (conj! ps (problem :error :transition/dangling-target (:sc/id s)
-                             (str "state \"" (:sc/id s) "\" on \"" ev
-                                  "\" targets unknown state \"" tgt "\""))))))
+          (conj! ps (sc-problem :error :transition/dangling-target (:sc/id s)
+                                (str "state \"" (:sc/id s) "\" on \"" ev
+                                     "\" targets unknown state \"" tgt "\""))))))
 
     ;; warn on states not reachable from any initial or transition target
     (let [referenced (into #{} (concat (all-initials chart) (all-targets chart)))]
       (doseq [[id _] all]
         (when-not (contains? referenced id)
-          (conj! ps (problem :warn :state/unreachable id
-                             (str "state \"" id "\" is unreachable — "
-                                  "not an :sc/initial and no transition targets it"))))))
+          (conj! ps (sc-problem :warn :state/unreachable id
+                                (str "state \"" id "\" is unreachable — "
+                                     "not an :sc/initial and no transition targets it"))))))
 
     (persistent! ps)))
 
 (defn errors
   "Problems of :error severity only."
   [chart]
-  (filterv #(= :error (:sc/severity %)) (problems chart)))
+  (problem/errors :sc (problems chart)))
 
 (defn valid?
   "True iff `chart` has no :error-level structural problems."
   [chart]
-  (empty? (errors chart)))
+  (problem/valid? :sc (problems chart)))
