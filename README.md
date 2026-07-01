@@ -1,4 +1,4 @@
-# statechart-clj (状態機械)
+# kotoba-lang/statechart
 
 [![CI](https://github.com/kotoba-lang/statechart/actions/workflows/ci.yml/badge.svg)](https://github.com/kotoba-lang/statechart/actions/workflows/ci.yml)
 
@@ -8,17 +8,13 @@ JVM, ClojureScript, and Clojure-on-WASM hosts (SCI). A chart is plain data you c
 `assoc`, `diff`, store in Datomic, or generate; the library adds the structural queries,
 validation, and a pure interpreter around it.
 
-Sibling of the other reusable `*-clj` kernels in this org
-([bpmn-clj](https://github.com/com-junkawasaki/bpmn-clj),
-[koe-clj](https://github.com/com-junkawasaki/koe-clj)).
+Sibling of other reusable kotoba-lang contract kernels such as
+[`kotoba-lang/bpmn`](https://github.com/kotoba-lang/bpmn).
 
-## Why a shared library (org placement)
+## Why a shared library
 
-Per the three-org rule, the **reusable** statechart kernel lives in **com-junkawasaki**;
-**public-benefit actor instances** that drive concrete dialog or reservation state machines
-live in **etzhayyim** (e.g., yadori reservation, denwaban voice-reception); any
-**business/private deployment** lives in **gftdcojp**. statechart-clj is the dep — it
-carries no domain logic and no engine bindings (those are host-injected ports).
+The reusable statechart kernel lives in `kotoba-lang/statechart`. It carries no
+domain logic and no engine bindings; those remain host-injected ports.
 
 ## The model: charts as EDN (`statechart.model`)
 
@@ -119,5 +115,5 @@ calls services; the interpreter stays pure orchestration.
 ## Test
 
 ```
-clojure -X:test
+clojure -M:test
 ```
