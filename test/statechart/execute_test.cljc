@@ -169,7 +169,33 @@
     (is (e/done? ms1)       "done after reaching :final state")
     (is (contains? (:sc/config ms1) "end") "end state in config")))
 
-;; ---- 8. validate ----
+;; ---- 8. internal / actions-only transition (no :sc/target) ----
+
+(def internal-chart
+  (-> (m/chart "door2" "closed")
+      (m/add-state (-> (m/state "closed" {:sc/entry ["enterClosed"] :sc/exit ["exitClosed"]})
+                       (m/on "PING" {:sc/actions ["doPing"]})
+                       (m/on "OPEN" {:sc/target "open"})))
+      (m/add-state (m/state "open"))))
+
+(deftest internal-transition-leaves-config-unchanged
+  ;; A transition with no :sc/target (SCXML-style internal transition) must
+  ;; run its actions without touching the active configuration -- neither
+  ;; :sc/exit nor :sc/entry of the current state should fire. Regression for
+  ;; a bug where a nil :sc/target computed lca as nil, exited the entire
+  ;; config, and entered #{nil}, permanently corrupting :sc/config.
+  (let [log   (atom [])
+        ports (recording-ports log)
+        ms0   (e/start ports internal-chart)
+        _     (reset! log [])
+        ms1   (e/send ports internal-chart ms0 "PING")]
+    (is (= #{"closed"} (:sc/config ms1)) "config unchanged by an internal transition")
+    (is (= ["doPing"] @log) "only the transition's own action ran, no exit/entry")
+    ;; the machine must still function normally afterward
+    (let [ms2 (e/send ports internal-chart ms1 "OPEN")]
+      (is (= #{"open"} (:sc/config ms2)) "a subsequent targeted transition still works"))))
+
+;; ---- 9. validate ----
 
 (deftest validate-catches-errors
   (testing "valid chart passes"

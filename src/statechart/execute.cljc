@@ -75,8 +75,8 @@
                   txs)))
         (cons state-id (m/ancestors chart state-id))))
 
-(defn- apply-transition
-  "Apply a single transition (src-id → tx) to machine-state and return updated state."
+(defn- apply-targeted-transition
+  "Apply a targeted transition (non-nil :sc/target) — the exit/entry/LCA machinery."
   [ports chart machine-state src-id tx]
   (let [{:sc/keys [config ctx]} machine-state
         tgt-id     (:sc/target tx)
@@ -115,6 +115,22 @@
     {:sc/config new-config
      :sc/ctx    ctx'
      :sc/done?  (boolean (some #(m/final? (m/lookup chart %)) new-config))}))
+
+(defn- apply-transition
+  "Apply a single transition (src-id → tx) to machine-state and return updated state."
+  [ports chart machine-state src-id tx]
+  (if (nil? (:sc/target tx))
+    ;; Internal/actions-only transition (SCXML-style, no :sc/target): the
+    ;; active configuration is unchanged, only the transition's own actions
+    ;; run. Routing this through apply-targeted-transition would compute lca
+    ;; as (lca chart src-id nil) => nil, exit the ENTIRE config, and enter
+    ;; (enter-states chart nil) => #{nil}, corrupting :sc/config to #{nil}
+    ;; permanently -- the model/validator both explicitly allow nil-target
+    ;; transitions (see statechart.validate's all-targets / dangling-target
+    ;; check, both of which skip a nil :sc/target), so the interpreter must
+    ;; handle them too.
+    (update machine-state :sc/ctx #(run-actions ports (:sc/actions tx) %))
+    (apply-targeted-transition ports chart machine-state src-id tx)))
 
 ;; ---- public API ----
 
