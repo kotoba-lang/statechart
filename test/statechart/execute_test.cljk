@@ -1,5 +1,5 @@
 (ns statechart.execute-test
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [kotoba.test :refer [deftest is testing]]
             [statechart.model    :as m]
             [statechart.ports    :as p]
             [statechart.validate :as v]
