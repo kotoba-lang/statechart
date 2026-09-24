@@ -3,7 +3,7 @@
   problem maps {:sc/severity :error|:warn :sc/code … :sc/id … :sc/msg …} so the
   caller decides how to surface them. `valid?` is true iff no :error-level problems
   (warnings are advisory)."
-  (:require [clojure.set :as set]
+  (:require [kotoba.lang.coll :as set]
             [kotoba.dsl.problem :as problem]
             [statechart.model :as m]))
 
